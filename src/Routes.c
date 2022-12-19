@@ -38,8 +38,7 @@ struct Route *search(struct Route *root, char *key) {
       return root;
     } else if (strcmp(key, root->key) > 0) {
       return search(root->right, key);
-      // Where (strcmp(key, root->key) < 0
-    } else {
+    } else { // Where (strcmp(key, root->key) < 0
       return search(root->left, key);
     }
   }

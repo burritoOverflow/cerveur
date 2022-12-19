@@ -20,3 +20,4 @@ clean:
 	-rm *.a
 	-rm src/*.a
 	-rm src/*.o
+	-rm $(exec)

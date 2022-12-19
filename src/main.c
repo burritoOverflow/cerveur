@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -65,30 +66,42 @@ int main() {
     printf("The route is %s\n", urlRoute);
 
     char template[100] = "";
-
-    if (strstr(urlRoute, "/static/") != NULL) {
-      strcat(template, "static/index.css");
-    } else {
-      struct Route *destination = search(route, urlRoute);
-      strcat(template, "templates/");
-
-      if (destination == NULL) {
-        strcat(template, "404.html");
+    if (strcmp(method, "GET") != 0) {
+      printf("Method: is not GET - got method: %s\n", method);
+      // method not supported, so let's Bad Request here
+      const char response_content[] = "Method Not Allowed";
+      char http_response_content[MSG_SIZE] =
+          "HTTP/1.1 405 Method Not Allowed\r\n\r\n";
+      strcat(http_response_content, response_content);
+      strcat(http_response_content, "\r\n\r\n");
+      send(client_socket, http_response_content, sizeof(http_response_content),
+           0);
+    } else { // GET request, allowed
+      if (strstr(urlRoute, "/static/") != NULL) {
+        strcat(template, "static/index.css");
       } else {
-        strcat(template, destination->value);
+        struct Route *destination = search(route, urlRoute);
+        strcat(template, "templates/");
+
+        if (destination == NULL) {
+          strcat(template, "404.html");
+        } else {
+          strcat(template, destination->value);
+        }
       }
+
+      char *response_data = render_static_file(template);
+
+      char http_header[4096] = "HTTP/1.1 200 OK\r\n\r\n";
+
+      strcat(http_header, response_data);
+      strcat(http_header, "\r\n\r\n");
+
+      send(client_socket, http_header, sizeof(http_header), 0);
+      close(client_socket);
+      free(response_data);
     }
-
-    char *response_data = render_static_file(template);
-
-    char http_header[4096] = "HTTP/1.1 200 OK\r\n\r\n";
-
-    strcat(http_header, response_data);
-    strcat(http_header, "\r\n\r\n");
-
-    send(client_socket, http_header, sizeof(http_header), 0);
-    close(client_socket);
-    free(response_data);
   }
+
   return 0;
 }
